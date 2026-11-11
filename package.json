@@ -27,10 +27,10 @@
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "@types/markdown-it": "^14.2.0",
-    "@types/node": "^22.20.5",
-    "@vitejs/plugin-vue": "^5.2.4",
-    "typescript": "~5.9.3",
-    "vite": "^6.4.5",
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.6",
     "vue-tsc": "^3.3.14"
   },
   "engines": {
