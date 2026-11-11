@@ -1,14 +1,15 @@
-<script setup>
-import { STATUS, statusOf, statusVar, healthOf, initial } from '../lib/format.js'
-import { hue } from '../lib/constellation.js'
-defineProps({ repo: Object, index: { type: Number, default: 0 } })
-defineEmits(['open'])
-function tilt(e) {
+<script setup lang="ts">
+import { STATUS, statusOf, statusVar, healthOf, initial } from '../lib/format.ts'
+import { hue } from '../lib/constellation.ts'
+import type { Repo } from '../core/types.ts'
+withDefaults(defineProps<{ repo: Repo; index?: number }>(), { index: 0 })
+defineEmits<{ open: [repo: Repo] }>()
+function tilt(e: PointerEvent): void {
   if (!matchMedia('(hover:hover)').matches) return
-  const el = e.currentTarget, b = el.getBoundingClientRect(), x = (e.clientX - b.left) / b.width, y = (e.clientY - b.top) / b.height
+  const el = e.currentTarget as HTMLElement, b = el.getBoundingClientRect(), x = (e.clientX - b.left) / b.width, y = (e.clientY - b.top) / b.height
   el.style.setProperty('--ry', (x - .5) * 7 + 'deg'); el.style.setProperty('--rx', (.5 - y) * 7 + 'deg'); el.style.setProperty('--mx', x * 100 + '%'); el.style.setProperty('--my', y * 100 + '%')
 }
-function untilt(e) { e.currentTarget.style.setProperty('--rx', '0deg'); e.currentTarget.style.setProperty('--ry', '0deg') }
+function untilt(e: PointerEvent): void { const el = e.currentTarget as HTMLElement; el.style.setProperty('--rx', '0deg'); el.style.setProperty('--ry', '0deg') }
 </script>
 
 <template>

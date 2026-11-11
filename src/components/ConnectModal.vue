@@ -1,14 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, nextTick, computed } from 'vue'
-import { state, connect, disconnect } from '../store.js'
-import { credentials } from '../lib/credentials.js'
-const dlg = ref(null), user = ref(''), token = ref(''), remember = ref(false), busy = computed(() => state.loading)
+import { state, connect, disconnect } from '../store.ts'
+import { credentials } from '../lib/credentials.ts'
+const dlg = ref<HTMLDialogElement | null>(null), user = ref(''), token = ref(''), remember = ref(false), busy = computed(() => state.loading)
 const connected = computed(() => state.phase === 'ready')
 watch(() => state.connectOpen, async v => {
-  if (v) { user.value = state.conn.user || credentials.user(); token.value = ''; remember.value = credentials.remembered(); await nextTick(); if (!dlg.value.open) dlg.value.showModal() }
+  if (v) { user.value = state.conn.user || credentials.user(); token.value = ''; remember.value = credentials.remembered(); await nextTick(); if (!dlg.value!.open) dlg.value!.showModal() }
   else if (dlg.value?.open) dlg.value.close()
 })
-async function submit(withToken) { await connect({ user: user.value, token: withToken ? (token.value.trim() || credentials.token() || '') : '', remember: remember.value }); if (!state.error) token.value = '' }
+async function submit(withToken: boolean) { await connect({ user: user.value, token: withToken ? (token.value.trim() || credentials.token() || '') : '', remember: remember.value }); if (!state.error) token.value = '' }
 async function leave() { await disconnect(); user.value = ''; token.value = ''; remember.value = false }
 const reset = computed(() => state.rate.reset ? new Date(state.rate.reset).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '')
 </script>

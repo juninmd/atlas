@@ -1,9 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { state, filtered, openRepo, toggleTheme, toast, resetFilters, refresh, analyzeAll } from '../store.js'
-const dlg = ref(null), q = ref(''), idx = ref(0), input = ref(null)
-const go = (view, label) => ({ t: 'Ir para ' + label, s: 'visão', f: () => state.view = view })
-const ACTS = [go('const', 'Constelação'), go('grid', 'Grade'), go('deck', 'Deck (carrossel)'), go('health', 'Saúde'), go('stack', 'Quem usa?'),
+import { state, filtered, openRepo, toggleTheme, toast, resetFilters, refresh, analyzeAll } from '../store.ts'
+import type { View } from '../store.ts'
+interface Item { t: string; s: string; f: () => unknown }
+const dlg = ref<HTMLDialogElement | null>(null), q = ref(''), idx = ref(0), input = ref<HTMLInputElement | null>(null)
+const go = (view: View, label: string): Item => ({ t: 'Ir para ' + label, s: 'visão', f: () => state.view = view })
+const ACTS: Item[] = [go('const', 'Constelação'), go('grid', 'Grade'), go('deck', 'Deck (carrossel)'), go('health', 'Saúde'), go('stack', 'Quem usa?'),
   { t: 'Alternar tema', s: 'ação', f: toggleTheme }, { t: 'Limpar filtros', s: 'ação', f: resetFilters },
   { t: 'Mostrar só ativos', s: 'filtro', f: () => state.status = 'ativo' }, { t: 'Mostrar só abandonados', s: 'filtro', f: () => state.status = 'abandonado' },
   { t: 'Ordenar por mais riscos', s: 'filtro', f: () => state.sort = 'risks' },
@@ -17,10 +19,10 @@ const list = computed(() => {
   const rp = s ? filtered.value.concat([]).filter(r => r.name.toLowerCase().includes(s)).slice(0, 7).map(r => ({ t: r.name, s: r.language || '—', f: () => openRepo(r) })) : []
   return [...a, ...rp]
 })
-watch(() => state.palette, async v => { if (v) { q.value = ''; idx.value = 0; await nextTick(); dlg.value.showModal(); input.value.focus() } else if (dlg.value.open) dlg.value.close() })
+watch(() => state.palette, async v => { if (v) { q.value = ''; idx.value = 0; await nextTick(); dlg.value!.showModal(); input.value!.focus() } else if (dlg.value?.open) dlg.value.close() })
 watch(q, () => idx.value = 0)
-function run(i) { const x = list.value[i]; if (!x) return; state.palette = false; x.f() }
-function key(e) {
+function run(i: number) { const x = list.value[i]; if (!x) return; state.palette = false; x.f() }
+function key(e: KeyboardEvent) {
   if (e.key === 'ArrowDown') { idx.value = Math.min(list.value.length - 1, idx.value + 1); e.preventDefault() }
   else if (e.key === 'ArrowUp') { idx.value = Math.max(0, idx.value - 1); e.preventDefault() }
   else if (e.key === 'Enter') run(idx.value)

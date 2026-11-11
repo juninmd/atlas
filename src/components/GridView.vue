@@ -1,6 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { filtered, openRepo, resetFilters } from '../store.js'
+import { filtered, openRepo, resetFilters } from '../store.ts'
 import RepoCard from './RepoCard.vue'
 const shown = ref(24)
 watch(filtered, () => shown.value = 24)

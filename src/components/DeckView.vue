@@ -1,8 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { filtered, openRepo, removeRepo, loadReadme, renderFor, projectTypes } from '../store.js'
-import { STATUS, statusOf, statusVar, healthOf, fmtDate } from '../lib/format.js'
-const cursor = ref(0), swap = ref(0), readme = ref({ status: 'unloaded', text: '' }), loading = ref(false)
+import { filtered, openRepo, removeRepo, loadReadme, renderFor, projectTypes } from '../store.ts'
+import { STATUS, statusOf, statusVar, healthOf, fmtDate } from '../lib/format.ts'
+import type { ReadmeDoc } from '../core/types.ts'
+const cursor = ref(0), swap = ref(0), readme = ref<ReadmeDoc>({ status: 'unloaded', text: '' }), loading = ref(false)
 let req = 0
 const repo = computed(() => filtered.value[cursor.value])
 const html = computed(() => repo.value && readme.value.text ? renderFor(repo.value, readme.value.text) : '')
@@ -13,8 +14,8 @@ watch(repo, async r => {
   const id = ++req; readme.value = r.readme || { status: 'missing', text: '' }; loading.value = true
   const d = await loadReadme(r); if (id === req) { readme.value = d; loading.value = false }
 }, { immediate: true })
-const step = n => cursor.value = Math.max(0, Math.min(filtered.value.length - 1, cursor.value + n))
-function key(e) { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1) }
+const step = (n: number) => cursor.value = Math.max(0, Math.min(filtered.value.length - 1, cursor.value + n))
+function key(e: KeyboardEvent) { if (/INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement).tagName)) return; if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1) }
 let sx = 0
 </script>
 

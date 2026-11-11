@@ -1,5 +1,5 @@
 {
   "mcpServers": {
-    "atlas": { "command": "node", "args": ["scripts/mcp.mjs"] }
+    "atlas": { "command": "node", "args": ["scripts/mcp.ts"] }
   }
 }

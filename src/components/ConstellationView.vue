@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
-import { state, activeSet, openRepo, setTip } from '../store.js'
-import { createConstellation } from '../lib/constellation.js'
-import { STATUS, statusOf } from '../lib/format.js'
-const cv = ref(null); let c
+import { state, activeSet, openRepo, setTip } from '../store.ts'
+import { createConstellation } from '../lib/constellation.ts'
+import { STATUS, statusOf } from '../lib/format.ts'
+const cv = ref<HTMLCanvasElement | null>(null); let c: ReturnType<typeof createConstellation> | undefined
 onMounted(() => {
-  c = createConstellation(cv.value, {
+  c = createConstellation(cv.value!, {
     labels: true, getRepos: () => state.repos, isActive: i => activeSet.value.has(i), colorMode: () => state.colorBy,
     onPick: r => openRepo(r), onHover: (r, x, y) => setTip(r ? `${r.name} · ${r.language || '—'} · ${STATUS[statusOf(r)]}` : null, x, y),
   })

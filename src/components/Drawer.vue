@@ -1,31 +1,34 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed, nextTick } from 'vue'
-import { state, loadReadme, renderFor, saveNote, removeRepo, toast, analyzeOne, CATEGORY_NAMES, projectTypes } from '../store.js'
-import { STATUS, SEV, statusOf, statusVar, healthOf, fmtDate, initial } from '../lib/format.js'
-import { hue } from '../lib/constellation.js'
-const dlg = ref(null), readme = ref({ status: 'unloaded', text: '' }), purpose = ref(''), cats = ref([]), saving = ref(false), ring = ref(false), scanning = ref(false)
-const TABS = [['over', 'Visão geral'], ['tech', 'Raio-X'], ['risks', 'Riscos e melhorias'], ['readme', 'README'], ['ficha', 'Ficha']]
-const r = computed(() => state.selected)
+import { state, loadReadme, renderFor, saveNote, removeRepo, toast, analyzeOne, CATEGORY_NAMES, projectTypes } from '../store.ts'
+import type { ReadmeDoc, Repo } from '../core/types.ts'
+import type { Tab } from '../store.ts'
+import { STATUS, SEV, statusOf, statusVar, healthOf, fmtDate, initial } from '../lib/format.ts'
+import { hue } from '../lib/constellation.ts'
+const dlg = ref<HTMLDialogElement | null>(null), readme = ref<ReadmeDoc>({ status: 'unloaded', text: '' }), purpose = ref(''), cats = ref<string[]>([]), saving = ref(false), ring = ref(false), scanning = ref(false)
+const TABS: [Tab, string][] = [['over', 'Visão geral'], ['tech', 'Raio-X'], ['risks', 'Riscos e melhorias'], ['readme', 'README'], ['ficha', 'Ficha']]
+const r = computed(() => state.selected as Repo | null)
 const C = 2 * Math.PI * 32
 const html = computed(() => r.value && readme.value.text ? renderFor(r.value, readme.value.text) : '')
 const topics = computed(() => r.value ? [...new Set([...(r.value.suggestedTopics || []), ...(r.value.topics || [])])] : [])
-const YN = v => v === null ? 'não se aplica' : v ? 'sim' : 'não'
+const sig = computed(() => r.value?.scan.signals ?? null)
+const YN = (v: boolean | null): string => v === null ? 'não se aplica' : v ? 'sim' : 'não'
 let req = 0
-watch(r, async repo => {
+watch(r, async (repo: Repo | null) => {
   if (!repo) { dlg.value?.open && dlg.value.close(); return }
   const id = ++req
   ring.value = false; purpose.value = repo.purpose; cats.value = [...repo.categories]
   readme.value = repo.readme || { status: 'missing', text: '' }
-  await nextTick(); if (!dlg.value.open) dlg.value.showModal()
+  await nextTick(); if (!dlg.value!.open) dlg.value!.showModal()
   requestAnimationFrame(() => ring.value = true)
   const rd = await loadReadme(repo); if (id === req) readme.value = rd
 })
 const close = () => { state.selected = null }
-const onClick = e => { if (e.target === dlg.value) close() }
-const toggleCat = c => cats.value = cats.value.includes(c) ? cats.value.filter(x => x !== c) : [...cats.value, c]
-async function save() { saving.value = true; try { await saveNote(r.value, { purpose: purpose.value.trim(), categories: cats.value }); toast('Ficha salva neste navegador.') } finally { saving.value = false } }
-function remove() { const repo = r.value; close(); removeRepo(repo) }
-async function scan() { scanning.value = true; try { await analyzeOne(r.value) } finally { scanning.value = false } }
+const onClick = (e: MouseEvent) => { if (e.target === dlg.value) close() }
+const toggleCat = (c: string) => cats.value = cats.value.includes(c) ? cats.value.filter(x => x !== c) : [...cats.value, c]
+async function save() { saving.value = true; try { await saveNote(r.value!, { purpose: purpose.value.trim(), categories: cats.value }); toast('Ficha salva neste navegador.') } finally { saving.value = false } }
+function remove() { const repo = r.value!; close(); removeRepo(repo) }
+async function scan() { scanning.value = true; try { await analyzeOne(r.value!) } finally { scanning.value = false } }
 </script>
 
 <template>
@@ -56,10 +59,10 @@ async function scan() { scanning.value = true; try { await analyzeOne(r.value) }
           <div class="chips"><a class="btn" :href="r.url" target="_blank" rel="noopener noreferrer">Abrir no GitHub ↗</a></div>
         </template>
         <template v-else-if="state.tab === 'tech'">
-          <template v-if="r.scan.deep">
+          <template v-if="sig">
             <div class="tbl"><div style="font-weight:700"><span>Sinal</span><span>Situação</span><span>Detalhe</span></div>
-              <div><span>CI (GitHub Actions)</span><span :class="{ bad: !r.scan.signals.ci }">{{ YN(r.scan.signals.ci) }}</span><span class="mono">{{ r.scan.signals.ci ? 'workflow encontrado' : 'nenhum workflow' }}</span></div>
-              <div><span>Lockfile</span><span :class="{ bad: r.scan.signals.lockfile === false }">{{ YN(r.scan.signals.lockfile) }}</span><span class="mono">{{ r.scan.signals.ecosystems.join(', ') || '—' }}</span></div>
+              <div><span>CI (GitHub Actions)</span><span :class="{ bad: !sig.ci }">{{ YN(sig.ci) }}</span><span class="mono">{{ sig.ci ? 'workflow encontrado' : 'nenhum workflow' }}</span></div>
+              <div><span>Lockfile</span><span :class="{ bad: sig.lockfile === false }">{{ YN(sig.lockfile) }}</span><span class="mono">{{ sig.ecosystems.join(', ') || '—' }}</span></div>
               <div v-for="(v, k) in r.scan.runtimes" :key="k"><span>Runtime {{ k }}</span><span class="mono">{{ Array.isArray(v) ? v.join(', ') : v }}</span><span></span></div></div>
             <h4>Dependências ({{ r.scan.techs.length }})</h4>
             <div class="chips"><span v-for="t in r.scan.techs" :key="t.ecosystem + t.name" class="tag t-cat" :title="t.kind">{{ t.name }} <span class="mono">{{ t.range }}</span></span><span v-if="!r.scan.techs.length" class="note" style="padding:6px 10px">Nenhum manifesto de dependências encontrado.</span></div>

@@ -1,15 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { state, filtered, activeSet, openRepo, setTip } from '../store.js'
-import { STATUS, STATUS_ORDER, statusOf, statusVar, healthOf } from '../lib/format.js'
-import { hue } from '../lib/constellation.js'
+import { state, filtered, activeSet, openRepo, setTip } from '../store.ts'
+import { STATUS, STATUS_ORDER, statusOf, statusVar, healthOf } from '../lib/format.ts'
+import { hue } from '../lib/constellation.ts'
 const groups = computed(() => STATUS_ORDER.map(s => {
   const L = state.repos.filter(r => !state.removed.has(r.name) && statusOf(r) === s).sort((a, b) => healthOf(b) - healthOf(a))
   const avg = L.length ? Math.round(L.reduce((a, r) => a + healthOf(r), 0) / L.length) : null
   return { s, L, avg }
 }).filter(g => g.L.length))
-const langs = computed(() => { const c = {}; filtered.value.forEach(r => { const l = r.language || '—'; c[l] = (c[l] || 0) + 1 }); const e = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 8); return e.map(([l, n]) => ({ l, n, w: n / e[0][1] * 100 })) })
-const risks = computed(() => { const r = ['ativo', 'manutencao', 'experimento', 'abandonado'].map(s => { const L = filtered.value.filter(x => statusOf(x) === s); return { s, v: L.length ? L.reduce((a, x) => a + x.scan.riskCount, 0) / L.length : 0 } }); const m = Math.max(1, ...r.map(x => x.v)); return r.map(x => ({ ...x, w: x.v / m * 100 })) })
+const langs = computed(() => { const c: Record<string, number> = {}; filtered.value.forEach(r => { const l = r.language || '—'; c[l] = (c[l] ?? 0) + 1 }); const e = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 8); return e.map(([l, n]) => ({ l, n, w: n / (e[0]?.[1] ?? 1) * 100 })) })
+const risks = computed(() => { const r = STATUS_ORDER.map(s => { const L = filtered.value.filter(x => statusOf(x) === s); return { s, v: L.length ? L.reduce((a, x) => a + x.scan.riskCount, 0) / L.length : 0 } }); const m = Math.max(1, ...r.map(x => x.v)); return r.map(x => ({ ...x, w: x.v / m * 100 })) })
 </script>
 
 <template>

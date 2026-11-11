@@ -1,7 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
-import { state, init, refresh, analyzeAll, filtered, totals, resetFilters, options, CATEGORY_NAMES, projectTypes, toggleTheme } from './store.js'
-import { STATUS } from './lib/format.js'
+import { state, init, refresh, analyzeAll, filtered, totals, resetFilters, options, CATEGORY_NAMES, projectTypes, toggleTheme } from './store.ts'
+import type { View } from './store.ts'
+import type { Status } from './core/types.ts'
+import { STATUS } from './lib/format.ts'
 import ConstellationView from './components/ConstellationView.vue'
 import GridView from './components/GridView.vue'
 import DeckView from './components/DeckView.vue'
@@ -11,25 +13,26 @@ import Drawer from './components/Drawer.vue'
 import Palette from './components/Palette.vue'
 import ConnectModal from './components/ConnectModal.vue'
 
-const VIEWS = [
+const VIEWS: [View, string, string][] = [
   ['const', 'Constelação', 'M6 7a2 2 0 1 0 0 .01M17 5a1.5 1.5 0 1 0 0 .01M14 14a2.5 2.5 0 1 0 0 .01M5 18a1.5 1.5 0 1 0 0 .01M19 19a2 2 0 1 0 0 .01M6 7l8 7M17 5l-3 9M14 14l5 5M5 18l9-4'],
   ['grid', 'Grade', 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'],
   ['deck', 'Deck', 'M5 5h14v14H5zM2 8v8M22 8v8'],
   ['health', 'Saúde', 'M3 12h4l3-8 4 16 3-8h4'],
   ['stack', 'Quem usa?', 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5'],
 ]
-const search = ref(null)
-const statuses = ['ativo', 'manutencao', 'experimento', 'abandonado']
-const counts = () => { const c = {}; state.repos.forEach(r => { c[r.scan.status] = (c[r.scan.status] || 0) + 1 }); return c }
+const search = ref<HTMLInputElement | null>(null)
+const statuses: Status[] = ['ativo', 'manutencao', 'experimento', 'abandonado']
+const counts = (): Partial<Record<Status, number>> => { const c: Partial<Record<Status, number>> = {}; state.repos.forEach(r => { c[r.scan.status] = (c[r.scan.status] ?? 0) + 1 }); return c }
+const width = innerWidth
 const rateTxt = () => state.rate.limit ? `${state.rate.remaining}/${state.rate.limit} consultas` : ''
 
-function onKey(e) {
-  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)
+function onKey(e: KeyboardEvent): void {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName ?? '')
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); state.palette = !state.palette; return }
   if (e.key === '/' && !typing && !state.selected && !state.palette) { e.preventDefault(); search.value?.focus() }
 }
 const onOnline = () => state.online = true, onOffline = () => state.online = false
-const onInstall = e => { e.preventDefault(); state.installEvent = e }
+const onInstall = (e: Event): void => { e.preventDefault(); state.installEvent = e as typeof state.installEvent }
 onMounted(() => { init(); addEventListener('keydown', onKey); addEventListener('online', onOnline); addEventListener('offline', onOffline); addEventListener('beforeinstallprompt', onInstall) })
 onBeforeUnmount(() => { removeEventListener('keydown', onKey); removeEventListener('online', onOnline); removeEventListener('offline', onOffline); removeEventListener('beforeinstallprompt', onInstall) })
 async function install() { const e = state.installEvent; if (!e) return; e.prompt(); await e.userChoice; state.installEvent = null }
@@ -58,7 +61,7 @@ watch(() => state.view, () => document.querySelector('.stage')?.scrollTo(0, 0))
           <input ref="search" id="q" v-model="state.q" type="search" placeholder="Busque uma ideia, ferramenta, linguagem, tecnologia ou topic…" aria-label="Buscar aplicações"><kbd>/</kbd></label>
         <div class="filters" id="chips">
           <button class="chip" :aria-pressed="!state.status" @click="state.status = ''">Todos</button>
-          <button v-for="s in statuses" :key="s" class="chip" :aria-pressed="state.status === s" :style="{ '--c': `var(--st-${s})` }" @click="state.status = state.status === s ? '' : s"><i></i>{{ STATUS[s] }} <span class="mono">{{ counts()[s] || 0 }}</span></button>
+          <button v-for="s in statuses" :key="s" class="chip" :aria-pressed="state.status === s" :style="{ '--c': `var(--st-${s})` }" @click="state.status = state.status === s ? '' : s"><i></i>{{ STATUS[s] }} <span class="mono">{{ counts()[s] ?? 0 }}</span></button>
           <button class="chip" :aria-pressed="state.pending" @click="state.pending = !state.pending">Finalidade pendente</button>
         </div>
         <div class="filters">
@@ -92,6 +95,6 @@ watch(() => state.view, () => document.querySelector('.stage')?.scrollTo(0, 0))
   <Drawer />
   <Palette />
   <ConnectModal />
-  <div v-if="state.tip" class="tip show" :style="{ left: Math.min(innerWidth - 270, state.tip.x + 14) + 'px', top: state.tip.y + 16 + 'px' }" role="tooltip">{{ state.tip.text }}</div>
+  <div v-if="state.tip" class="tip show" :style="{ left: Math.min(width - 270, state.tip.x + 14) + 'px', top: state.tip.y + 16 + 'px' }" role="tooltip">{{ state.tip.text }}</div>
   <div v-if="state.toast" class="toast" role="status"><span>{{ state.toast.msg }}</span><button v-if="state.toast.undo" @click="state.toast.undo(); state.toast = null">Desfazer</button></div>
 </template>

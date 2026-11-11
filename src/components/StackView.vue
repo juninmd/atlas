@@ -1,16 +1,17 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
-import { state, openRepo, analyzeAll, totals } from '../store.js'
-import { STATUS, statusOf } from '../lib/format.js'
+import { state, openRepo, analyzeAll, totals } from '../store.ts'
+import { STATUS, statusOf } from '../lib/format.ts'
+import type { Repo, Tech } from '../core/types.ts'
 const term = ref('')
 const pool = computed(() => state.repos.filter(r => !state.removed.has(r.name)))
-const chips = computed(() => { const c = {}; pool.value.forEach(r => r.scan.techs.forEach(t => { const k = t.name.toLowerCase(); c[k] = (c[k] || 0) + 1 })); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 14).map(x => x[0]) })
+const chips = computed(() => { const c: Record<string, number> = {}; pool.value.forEach(r => r.scan.techs.forEach(t => { const k = t.name.toLowerCase(); c[k] = (c[k] ?? 0) + 1 })); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 14).map(x => x[0]) })
 const matches = computed(() => {
   const q = term.value.trim().toLowerCase(); if (!q) return []
   return pool.value.map(r => {
     const t = r.scan.techs.find(t => t.name.toLowerCase().includes(q))
     return t || [r.name, r.purpose, r.language, ...(r.topics || [])].join(' ').toLowerCase().includes(q) ? { r, t } : null
-  }).filter(Boolean)
+  }).filter((m): m is { r: Repo; t: Tech | undefined } => m !== null)
 })
 const topRisk = computed(() => [...pool.value].sort((a, b) => b.scan.riskCount - a.scan.riskCount).slice(0, 6))
 const noCI = computed(() => pool.value.filter(r => r.scan.deep && r.scan.risks.some(x => x.id === 'no-ci')).slice(0, 6))
