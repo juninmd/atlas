@@ -259,3 +259,16 @@ html,body,#app{height:100%}
 .err{color:var(--st-abandonado);font-size:14px}
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 #analyzeBtn{margin-left:6px}
+
+.menu{position:relative}
+.menu summary{list-style:none;cursor:pointer}
+.menu summary::-webkit-details-marker{display:none}
+.menu summary::after{content:"▾";margin-left:6px;font-size:11px}
+.menu-list{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:230px;background:var(--surf);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);padding:6px;display:grid;gap:2px}
+.menu-list button{text-align:left;padding:9px 12px;border-radius:10px;font-size:14px}
+.menu-list button:hover{background:var(--surf2)}
+.menu-list small{padding:6px 12px 4px;color:var(--mut);font-size:12px}
+.div-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:20px}
+.div-grid ul{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13.5px}
+.div-grid li{display:grid;gap:2px}
+.div-grid li span{color:var(--mut);font-size:12.5px;overflow-wrap:anywhere}

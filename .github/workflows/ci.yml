@@ -8,6 +8,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -21,5 +22,12 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
-      - run: pnpm exec playwright install --with-deps chromium
+      # O apt dos runners as vezes trava: tenta de novo com limite de tempo em vez de esperar 10 minutos.
+      - name: Instalar o Chromium
+        run: |
+          for attempt in 1 2 3; do
+            timeout 240 pnpm exec playwright install --with-deps chromium && exit 0
+            echo "tentativa $attempt falhou"; sleep 10
+          done
+          exit 1
       - run: pnpm test:e2e
