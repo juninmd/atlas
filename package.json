@@ -1,0 +1,33 @@
+{
+  "name": "atlas",
+  "version": "2.0.0",
+  "description": "Atlas: catálogo e raio-X dos seus repositórios do GitHub, 100% no navegador",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/pwa.mjs",
+    "preview": "vite preview",
+    "topics:plan": "node scripts/topics.mjs",
+    "topics:apply": "node scripts/topics.mjs --apply",
+    "topics:verify": "node scripts/topics.mjs --verify",
+    "stack:collect": "node scripts/stack-cli.mjs collect",
+    "stack:who": "node scripts/stack-cli.mjs who",
+    "stack:report": "node scripts/stack-cli.mjs report",
+    "mcp": "node scripts/mcp.mjs",
+    "test": "node --test scripts/*.test.mjs src/core/*.test.js",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "markdown-it": "^15.0.3",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "vite": "^6.4.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
