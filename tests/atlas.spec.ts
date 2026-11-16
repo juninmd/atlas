@@ -26,8 +26,10 @@ async function mockGithub(page: Page, { unauthorized = false }: { unauthorized?:
     if (url.pathname === '/users/ghost/repos') return json({ message: 'Not Found' }, 404)
     if (url.pathname.endsWith('/readme')) return json({ path: 'README.md', ...b64('# Olá\n\nTexto do README com [link](https://example.com) e <script>alert(1)</script>.') })
     if (url.pathname === '/repos/octo/alpha/git/trees/main') return json({ tree: [{ type: 'blob', path: 'package.json' }, { type: 'blob', path: 'pnpm-lock.yaml' }, { type: 'blob', path: '.github/workflows/ci.yml' }] })
-    if (url.pathname === '/repos/octo/alpha/contents/package.json') return json(b64('{"dependencies":{"vue":"^3.5.0"},"devDependencies":{"vite":"^6.0.0"}}'))
+    if (url.pathname === '/repos/octo/alpha/contents/package.json') return json(b64('{"engines":{"node":">=22"},"dependencies":{"vue":"^3.5.0"},"devDependencies":{"vite":"^6.0.0"}}'))
     if (url.pathname === '/repos/octo/alpha/contents/.github/workflows/ci.yml') return json(b64('name: CI\non: push\n'))
+    if (url.pathname === '/repos/octo/beta/git/trees/main') return json({ tree: [{ type: 'blob', path: 'package.json' }] })
+    if (url.pathname === '/repos/octo/beta/contents/package.json') return json(b64('{"engines":{"node":">=18"},"dependencies":{"express":"^4"}}'))
     return json({ message: 'Not Found' }, 404)
   })
   return seen
@@ -142,6 +144,59 @@ test('visões, paleta e remover com desfazer', async ({ page }) => {
   await page.keyboard.press('Control+k')
   await page.fill('#palq', 'saúde'); await page.keyboard.press('Enter')
   await expect(page.locator('#mosaic .cell').first()).toBeVisible()
+})
+
+test('exportar: CSV, JSON, Markdown e plano de topics respeitam o filtro', async ({ page }) => {
+  await mockGithub(page)
+  await page.goto('/')
+  await connectPublic(page)
+  await page.click('[data-view=grid]')
+  await page.fill('#q', 'alpha')
+  const grab = async (label: string) => {
+    await page.click('#exportBtn')
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: label }).click()])
+    return { name: dl.suggestedFilename(), text: await readFile(await dl.path() as string, 'utf8') }
+  }
+  const csv = await grab('Planilha (CSV)')
+  expect(csv.name).toMatch(/^atlas-octo-\d{4}-\d{2}-\d{2}\.csv$/)
+  expect(csv.text.trimEnd().split('\n')).toHaveLength(2)
+  expect(csv.text).toContain('alpha')
+  expect(csv.text).not.toContain('beta')
+  const json = JSON.parse((await grab('Dados (JSON)')).text) as { name: string }[]
+  expect(json.map(r => r.name)).toEqual(['alpha'])
+  expect((await grab('Relatório (Markdown)')).text).toContain('# Atlas · Raio-X de octo')
+  const plan = JSON.parse((await grab('Plano de topics')).text) as { name: string; before: string[] }[]
+  expect(plan[0]).toMatchObject({ name: 'alpha', before: ['demo'] })
+})
+
+test('a visão vira o hash da URL e o hash abre a visão', async ({ page }) => {
+  await mockGithub(page)
+  await page.goto('/#saude')
+  await connectPublic(page)
+  await expect(page.locator('#mosaic .cell').first()).toBeVisible()
+  await page.click('[data-view=grid]')
+  await expect(page).toHaveURL(/#grade$/)
+  await page.click('[data-view=stack]')
+  await expect(page).toHaveURL(/#stack$/)
+})
+
+test('quem usa?: divergência de Node entre repositórios analisados', async ({ page }) => {
+  await mockGithub(page)
+  await page.goto('/')
+  await connectPublic(page)
+  await page.click('[data-view=grid]')
+  for (const name of ['alpha', 'beta']) {
+    await page.fill('#q', name)
+    await page.locator('.repo-card').first().click()
+    await page.getByRole('tab', { name: 'Raio-X' }).click()
+    await page.getByRole('button', { name: 'Analisar este repositório' }).click()
+    await expect(page.locator('#dbody')).toContainText('Dependências')
+    await page.keyboard.press('Escape')
+  }
+  await page.click('[data-view=stack]')
+  await expect(page.locator('#divergences')).toContainText('Node (engines / .nvmrc)')
+  await expect(page.locator('#divergences')).toContainText('>=22')
+  await expect(page.locator('#divergences')).toContainText('>=18')
 })
 
 test('mobile sem rolagem horizontal', async ({ page }) => {

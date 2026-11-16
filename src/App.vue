@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
-import { state, init, refresh, analyzeAll, filtered, totals, resetFilters, options, CATEGORY_NAMES, projectTypes, toggleTheme } from './store.ts'
+import { state, init, refresh, analyzeAll, filtered, totals, resetFilters, options, CATEGORY_NAMES, projectTypes, toggleTheme, toast } from './store.ts'
+import { download, toCsv, toJson, toMarkdown, topicsPlan } from './lib/export.ts'
 import type { View } from './store.ts'
-import type { Status } from './core/types.ts'
+import type { Repo, Status } from './core/types.ts'
 import { STATUS } from './lib/format.ts'
 import ConstellationView from './components/ConstellationView.vue'
 import GridView from './components/GridView.vue'
@@ -13,6 +14,20 @@ import Drawer from './components/Drawer.vue'
 import Palette from './components/Palette.vue'
 import ConnectModal from './components/ConnectModal.vue'
 
+const HASH: Record<View, string> = { const: 'constelacao', grid: 'grade', deck: 'deck', health: 'saude', stack: 'stack' }
+const fromHash = (): View | null => (Object.entries(HASH).find(([, h]) => h === location.hash.slice(1))?.[0] as View | undefined) ?? null
+const onHash = (): void => { const v = fromHash(); if (v) state.view = v }
+const menu = ref<HTMLDetailsElement | null>(null)
+type Kind = 'json' | 'csv' | 'md' | 'topics'
+function exportAs(kind: Kind): void {
+  const repos = filtered.value as Repo[], stamp = new Date().toISOString().slice(0, 10), who = state.conn.user || 'atlas'
+  if (kind === 'csv') download(`atlas-${who}-${stamp}.csv`, toCsv(repos), 'text/csv')
+  else if (kind === 'json') download(`atlas-${who}-${stamp}.json`, toJson(repos), 'application/json')
+  else if (kind === 'md') download(`atlas-${who}-${stamp}.md`, toMarkdown(repos, { user: who, date: stamp }), 'text/markdown')
+  else download('topics-plan.json', JSON.stringify(topicsPlan(repos), null, 2) + '\n', 'application/json')
+  if (menu.value) menu.value.open = false
+  toast(kind === 'topics' ? 'Plano de topics exportado. Salve em .catalog/topics-plan.json e rode pnpm topics:apply.' : `${repos.length} repositórios exportados.`)
+}
 const VIEWS: [View, string, string][] = [
   ['const', 'Constelação', 'M6 7a2 2 0 1 0 0 .01M17 5a1.5 1.5 0 1 0 0 .01M14 14a2.5 2.5 0 1 0 0 .01M5 18a1.5 1.5 0 1 0 0 .01M19 19a2 2 0 1 0 0 .01M6 7l8 7M17 5l-3 9M14 14l5 5M5 18l9-4'],
   ['grid', 'Grade', 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'],
@@ -33,10 +48,10 @@ function onKey(e: KeyboardEvent): void {
 }
 const onOnline = () => state.online = true, onOffline = () => state.online = false
 const onInstall = (e: Event): void => { e.preventDefault(); state.installEvent = e as typeof state.installEvent }
-onMounted(() => { init(); addEventListener('keydown', onKey); addEventListener('online', onOnline); addEventListener('offline', onOffline); addEventListener('beforeinstallprompt', onInstall) })
-onBeforeUnmount(() => { removeEventListener('keydown', onKey); removeEventListener('online', onOnline); removeEventListener('offline', onOffline); removeEventListener('beforeinstallprompt', onInstall) })
+onMounted(() => { onHash(); init(); addEventListener('hashchange', onHash); addEventListener('keydown', onKey); addEventListener('online', onOnline); addEventListener('offline', onOffline); addEventListener('beforeinstallprompt', onInstall) })
+onBeforeUnmount(() => { removeEventListener('hashchange', onHash); removeEventListener('keydown', onKey); removeEventListener('online', onOnline); removeEventListener('offline', onOffline); removeEventListener('beforeinstallprompt', onInstall) })
 async function install() { const e = state.installEvent; if (!e) return; e.prompt(); await e.userChoice; state.installEvent = null }
-watch(() => state.view, () => document.querySelector('.stage')?.scrollTo(0, 0))
+watch(() => state.view, v => { document.querySelector('.stage')?.scrollTo(0, 0); if (location.hash.slice(1) !== HASH[v]) history.replaceState(null, '', `#${HASH[v]}`) })
 </script>
 
 <template>
@@ -75,6 +90,12 @@ watch(() => state.view, () => document.querySelector('.stage')?.scrollTo(0, 0))
           <button class="chip" id="reset" @click="resetFilters">Limpar</button>
         </div>
         <div class="countline"><span id="count">{{ filtered.length }} de {{ state.repos.length }} repositórios</span>
+          <details v-if="state.phase === 'ready'" ref="menu" class="menu"><summary class="chip" id="exportBtn">Exportar</summary>
+            <div class="menu-list" role="menu" :aria-label="`Exportar ${filtered.length} repositórios do filtro atual`">
+              <button role="menuitem" @click="exportAs('csv')">Planilha (CSV)</button><button role="menuitem" @click="exportAs('json')">Dados (JSON)</button>
+              <button role="menuitem" @click="exportAs('md')">Relatório (Markdown)</button><button role="menuitem" @click="exportAs('topics')">Plano de topics</button>
+              <small>{{ filtered.length }} repositórios do filtro atual<template v-if="state.conn.scope === 'private'">, incluindo privados</template></small>
+            </div></details>
           <span class="kpistrip"><span><b>{{ totals.deep }}</b>analisados a fundo</span><span><b>{{ totals.risks }}</b>riscos</span><span v-if="totals.deep"><b>{{ totals.noCI }}</b>sem CI</span>
             <button class="chip" id="analyzeBtn" :disabled="state.analysis.running" @click="analyzeAll">{{ state.analysis.running ? `Analisando ${state.analysis.done}/${state.analysis.total}…` : 'Analisar stack e CI' }}</button></span></div>
         <p v-if="state.analysis.message" class="note" role="status">{{ state.analysis.message }}</p>

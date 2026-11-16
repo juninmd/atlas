@@ -4,6 +4,8 @@ import { createClient } from './core/github.ts'
 import type { ApiError, RateInfo } from './core/github.ts'
 import { analyze } from './core/analyze.ts'
 import { collectRepo, collectStack, SCHEMA } from './core/stack-collect.ts'
+import { report } from './core/stack-query.ts'
+import type { Report } from './core/stack-query.ts'
 import { forgetSecrets } from './core/redact.ts'
 import type { ReadmeDoc, Repo, RepoMeta, StackEntry, StackIndex } from './core/types.ts'
 import { createRenderer } from './lib/md.ts'
@@ -24,7 +26,7 @@ export interface State {
   phase: 'welcome' | 'ready'; loading: boolean; error: string; connectOpen: boolean; notice: string
   conn: Conn; rate: RateInfo
   analysis: { running: boolean; done: number; total: number; message: string }
-  generated: string; repos: Repo[]
+  generated: string; repos: Repo[]; report: Report | null
   view: View; q: string; status: string; lang: string; cat: string; topic: string; ptype: string; kind: string; vis: string; pending: boolean; sort: string; colorBy: 'status' | 'lang'
   removed: Set<string>; notes: Record<string, Note>
   selected: Repo | null; tab: Tab; palette: boolean; toast: { msg: string; undo?: () => void } | null; tip: { text: string; x: number; y: number } | null
@@ -41,7 +43,7 @@ export const state = reactive<State>({
   phase: 'welcome', loading: false, error: '', connectOpen: false, notice: '',
   conn: { ...NO_CONN }, rate: { ...NO_RATE },
   analysis: { running: false, done: 0, total: 0, message: '' },
-  generated: '', repos: [],
+  generated: '', repos: [], report: null,
   view: 'const', q: '', status: '', lang: '', cat: '', topic: '', ptype: '', kind: '', vis: '', pending: false, sort: 'recent', colorBy: 'status',
   removed: new Set(store<string[]>('atlas-removed', [])), notes: store<Record<string, Note>>('atlas-notes', {}),
   selected: null, tab: 'over', palette: false, toast: null, tip: null, online: navigator.onLine, installEvent: null, theme: document.documentElement.dataset.theme || '',
@@ -98,6 +100,8 @@ function build(list: RepoMeta[]): void {
   raw = list
   state.repos = list.map((r, i) => applyNote({ ...enrich(r), _i: i, scan: analyze(r, entryOf(r)) }))
 }
+/** Divergências entre repositórios (Node, gerenciador de pacotes, Docker, workflows), a partir do índice de stack. */
+const refreshReport = (): void => { state.report = stackIndex.repos.length ? report(stackIndex) : null }
 function rescan(repo: Repo): void { const r = raw.find(x => x.name === repo.name); if (r) repo.scan = analyze(r, entryOf(r)) }
 
 function explain(e: unknown): string {
@@ -124,6 +128,7 @@ export async function connect({ user = '', token, remember = false, force = fals
     const key = `snap:${target.toLowerCase()}:${includePrivate}`
     const snap = force ? undefined : await db.get<Snapshot>(key)
     stackIndex = (await db.get<StackIndex>(`stack:${target.toLowerCase()}`)) || { schema: SCHEMA, repos: [] }
+    refreshReport()
     if (snap && Date.now() - snap.at < FRESH_MS) { state.generated = new Date(snap.at).toISOString(); build(snap.repos) }
     else {
       const list = await client.inventory({ user: target, includePrivate })
@@ -137,7 +142,7 @@ export const refresh = (): Promise<boolean> => connect({ user: state.conn.user, 
 export async function disconnect(): Promise<void> {
   credentials.clearAll(); forgetSecrets(); await db.clear()
   raw = []; stackIndex = { schema: SCHEMA, repos: [] }
-  Object.assign(state, { repos: [], phase: 'welcome', error: '', conn: { ...NO_CONN }, rate: { ...NO_RATE }, generated: '', selected: null })
+  Object.assign(state, { repos: [], report: null, phase: 'welcome', error: '', conn: { ...NO_CONN }, rate: { ...NO_RATE }, generated: '', selected: null })
   resetFilters()
 }
 export async function init(): Promise<void> {
@@ -156,7 +161,7 @@ export async function analyzeAll(): Promise<void> {
   Object.assign(a, { running: true, done: 0, total: raw.length, message: '' })
   const { index, fetched, failed, halted } = await collectStack(raw, stackIndex, { get: (p, o) => client.api(p, o), onProgress: (d, t) => { a.done = d; a.total = t }, shouldStop: lowQuota })
   stackIndex = index; await db.set(`stack:${state.conn.user.toLowerCase()}`, index)
-  state.repos.forEach(rescan)
+  state.repos.forEach(rescan); refreshReport()
   Object.assign(a, { running: false, message: halted ? `Parou: ${halted}. Rode de novo para continuar de onde parou.` : `${fetched} repositórios analisados${failed ? `, ${failed} com falha` : ''}.` })
 }
 export async function analyzeOne(repo: Repo): Promise<void> {
@@ -166,7 +171,7 @@ export async function analyzeOne(repo: Repo): Promise<void> {
     const result = await collectRepo(r, (p, o) => client.api(p, o))
     const entry: StackEntry = { name: r.name, owner: r.owner, private: r.private, archived: r.archived, fork: r.fork, branch: r.branch, pushed_at: r.pushed_at, ...result }
     stackIndex = { ...stackIndex, repos: [...stackIndex.repos.filter(e => !(e.owner === r.owner && e.name === r.name)), entry] }
-    await db.set(`stack:${state.conn.user.toLowerCase()}`, stackIndex); rescan(repo)
+    await db.set(`stack:${state.conn.user.toLowerCase()}`, stackIndex); rescan(repo); refreshReport()
   } catch (e) { state.analysis.message = explain(e) }
 }
 

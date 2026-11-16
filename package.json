@@ -16,7 +16,7 @@
     "stack:who": "node scripts/stack-cli.ts who",
     "stack:report": "node scripts/stack-cli.ts report",
     "mcp": "node scripts/mcp.ts",
-    "test": "node --test scripts/*.test.ts src/core/*.test.ts",
+    "test": "node --test scripts/*.test.ts src/core/*.test.ts src/lib/*.test.ts",
     "test:e2e": "playwright test",
     "check": "pnpm typecheck && pnpm test"
   },

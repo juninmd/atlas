@@ -14,6 +14,16 @@ const matches = computed(() => {
   }).filter((m): m is { r: Repo; t: Tech | undefined } => m !== null)
 })
 const topRisk = computed(() => [...pool.value].sort((a, b) => b.scan.riskCount - a.scan.riskCount).slice(0, 6))
+interface Section { title: string; groups: [string, string[]][] }
+// Só aparecem grupos que revelam divergência: o maior grupo mostra a contagem; os demais listam os repositórios.
+const sections = computed<Section[]>(() => {
+  const r = state.report
+  if (!r) return []
+  const out: Section[] = [{ title: 'Node (engines / .nvmrc)', groups: [...r.node] }, { title: 'Gerenciador de pacotes', groups: [...r.packageManager] }, { title: 'Imagens base do Docker', groups: [...r.docker] }]
+  for (const [file, refs] of r.reusable) out.push({ title: `Workflow ${file}`, groups: [...refs] })
+  return out.filter(s => s.groups.length > 1)
+})
+const noLock = computed(() => state.report?.noLockfile ?? [])
 const noCI = computed(() => pool.value.filter(r => r.scan.deep && r.scan.risks.some(x => x.id === 'no-ci')).slice(0, 6))
 </script>
 
@@ -36,6 +46,11 @@ const noCI = computed(() => pool.value.filter(r => r.scan.deep && r.scan.risks.s
     <div class="rep">
       <div class="panel"><h4>Mais riscos</h4><ol><li v-for="r in topRisk" :key="r.name"><button @click="openRepo(r, 'risks')"><span>{{ r.name }}</span><small>{{ r.scan.riskCount }} riscos</small></button></li></ol></div>
       <div class="panel"><h4>Sem CI (análise a fundo)</h4><ol><li v-for="r in noCI" :key="r.name"><button @click="openRepo(r, 'risks')"><span>{{ r.name }}</span><small>{{ r.language || '—' }}</small></button></li><li v-if="!noCI.length" class="mono small" style="color:var(--mut)">{{ totals.deep ? 'Nenhum.' : 'Rode a análise.' }}</li></ol></div>
+    </div>
+    <div v-if="sections.length || noLock.length" class="div-grid" id="divergences">
+      <div v-for="s in sections" :key="s.title" class="panel"><h4>Divergência: {{ s.title }}</h4>
+        <ul><li v-for="([key, names], i) in s.groups" :key="key"><b>{{ key }}: {{ names.length }}</b><span v-if="i">{{ names.join(', ') }}</span></li></ul></div>
+      <div v-if="noLock.length" class="panel"><h4>Sem lockfile ({{ noLock.length }})</h4><ul><li><span>{{ noLock.join(', ') }}</span></li></ul></div>
     </div>
   </div>
 </template>

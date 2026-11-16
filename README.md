@@ -29,13 +29,15 @@ Feito em **TypeScript** (modo `strict`), Vue 3 e Vite. Publicado como site está
 | **Grade** | Cards com busca e filtros por status, linguagem, categoria, topic, tipo de projeto, origem (original, fork, arquivado) e visibilidade. |
 | **Deck** | Um repositório por vez, com o README renderizado ao lado. Navegue com as setas ou deslizando. |
 | **Saúde** | Mosaico por status, uma célula por repositório, com a pontuação de saúde e gráficos por linguagem e risco. |
-| **Quem usa?** | Quais repositórios usam uma dependência, quais têm mais riscos e quais estão sem CI. |
+| **Quem usa?** | Quais repositórios usam uma dependência, quais têm mais riscos e quais estão sem CI. Depois da análise a fundo, mostra também as **divergências** entre repositórios: versões de Node, gerenciadores de pacotes, imagens base do Docker e versões de workflows reutilizáveis. |
 
 Também inclui:
 
 - **Painel do repositório** com visão geral, raio-X, riscos e melhorias, README e ficha pessoal.
 - **Ficha pessoal**: escreva a finalidade e escolha categorias. Fica só no seu navegador e não altera nada no GitHub.
 - **Remover do catálogo** com desfazer, para esconder o que você não quer ver.
+- **Exportar** o filtro atual em planilha (CSV), dados (JSON), relatório (Markdown) ou **plano de topics**, no mesmo formato da CLI. Salve em `.catalog/topics-plan.json`, revise e rode `pnpm topics:apply`. O CSV neutraliza células que começam com `=`, `+`, `-` ou `@`.
+- **Links por visão**: a URL guarda a visão (`#constelacao`, `#grade`, `#deck`, `#saude`, `#stack`), então dá para marcar ou compartilhar.
 - **Paleta de comandos** (`Ctrl K`), atalho `/` para a busca e `←` `→` no Deck.
 - **Tema claro e escuro**, que segue o sistema.
 - **PWA**: o shell do app funciona offline.
