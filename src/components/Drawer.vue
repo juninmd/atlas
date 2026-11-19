@@ -23,6 +23,14 @@ watch(r, async (repo: Repo | null) => {
   requestAnimationFrame(() => ring.value = true)
   const rd = await loadReadme(repo); if (id === req) readme.value = rd
 })
+// WAI-ARIA tabs: arrows/Home/End move selection and focus (roving tabindex).
+function onTabKey(e: KeyboardEvent) {
+  const keys = TABS.map(([k]) => k), i = keys.indexOf(state.tab)
+  const next = e.key === 'ArrowRight' ? (i + 1) % keys.length : e.key === 'ArrowLeft' ? (i - 1 + keys.length) % keys.length : e.key === 'Home' ? 0 : e.key === 'End' ? keys.length - 1 : -1
+  if (next < 0) return
+  e.preventDefault(); state.tab = keys[next]!
+  nextTick(() => document.getElementById(`dtab-${keys[next]}`)?.focus())
+}
 const close = () => { state.selected = null }
 const onClick = (e: MouseEvent) => { if (e.target === dlg.value) close() }
 const toggleCat = (c: string) => cats.value = cats.value.includes(c) ? cats.value.filter(x => x !== c) : [...cats.value, c]
@@ -49,8 +57,8 @@ async function scan() { scanning.value = true; try { await analyzeOne(r.value!) 
           <div class="fact"><span>Issues</span><b>{{ r.open_issues }}</b></div>
         </div>
       </div>
-      <div class="tabs" role="tablist"><button v-for="[k, l] in TABS" :key="k" role="tab" :aria-selected="state.tab === k" @click="state.tab = k">{{ l }}</button></div>
-      <div :key="state.tab" class="d-body" role="tabpanel" id="dbody">
+      <div class="tabs" role="tablist" aria-label="Seções do repositório" @keydown="onTabKey"><button v-for="[k, l] in TABS" :key="k" :id="`dtab-${k}`" role="tab" aria-controls="dbody" :aria-selected="state.tab === k" :tabindex="state.tab === k ? 0 : -1" @click="state.tab = k">{{ l }}</button></div>
+      <div :key="state.tab" class="d-body" role="tabpanel" id="dbody" :aria-labelledby="`dtab-${state.tab}`" tabindex="0">
         <template v-if="state.tab === 'over'">
           <p class="big">{{ r.purpose }}</p>
           <p class="mono" style="font-size:12px">Fonte: {{ r.purposeSource }}<template v-if="r.projectType"> · {{ projectTypes[r.projectType] || r.projectType }}</template></p>
