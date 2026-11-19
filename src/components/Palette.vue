@@ -21,6 +21,8 @@ const list = computed(() => {
 })
 watch(() => state.palette, async v => { if (v) { q.value = ''; idx.value = 0; await nextTick(); dlg.value!.showModal(); input.value!.focus() } else if (dlg.value?.open) dlg.value.close() })
 watch(q, () => idx.value = 0)
+// Keep the highlighted option visible while moving with the arrow keys.
+watch(idx, async i => { await nextTick(); document.getElementById(`pal-opt-${i}`)?.scrollIntoView({ block: 'nearest' }) })
 function run(i: number) { const x = list.value[i]; if (!x) return; state.palette = false; x.f() }
 function key(e: KeyboardEvent) {
   if (e.key === 'ArrowDown') { idx.value = Math.min(list.value.length - 1, idx.value + 1); e.preventDefault() }
@@ -31,8 +33,8 @@ function key(e: KeyboardEvent) {
 
 <template>
   <dialog id="pal" ref="dlg" aria-label="Paleta de comandos" @close="state.palette = false" @click="$event.target === dlg && (state.palette = false)">
-    <input id="palq" ref="input" v-model="q" placeholder="Digite um comando ou o nome de um repositório…" aria-label="Comando" @keydown="key">
-    <ul><li v-for="(x, i) in list" :key="x.t + i"><button :class="{ on: i === idx }" @click="run(i)" @pointerenter="idx = i">{{ x.t }}<small>{{ x.s }}</small></button></li>
-      <li v-if="!list.length" class="empty">Nada encontrado.</li></ul>
+    <input id="palq" ref="input" v-model="q" role="combobox" aria-expanded="true" aria-controls="palList" aria-autocomplete="list" :aria-activedescendant="list.length ? `pal-opt-${idx}` : undefined" placeholder="Digite um comando ou o nome de um repositório…" aria-label="Comando" @keydown="key">
+    <ul id="palList" role="listbox" aria-label="Comandos e repositórios"><li v-for="(x, i) in list" :key="x.t + i" role="presentation"><button :id="`pal-opt-${i}`" role="option" tabindex="-1" :aria-selected="i === idx" :class="{ on: i === idx }" @click="run(i)" @pointerenter="idx = i">{{ x.t }}<small>{{ x.s }}</small></button></li>
+      <li v-if="!list.length" class="empty" role="option" aria-disabled="true" aria-selected="false">Nada encontrado.</li></ul>
   </dialog>
 </template>
