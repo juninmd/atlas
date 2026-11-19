@@ -106,6 +106,26 @@ test('erros do GitHub viram mensagens claras', async ({ page }) => {
   await expect(modal(page)).toContainText('Usuário não encontrado')
 })
 
+test('raio-X: abas do drawer seguem o padrão WAI-ARIA e respondem às setas', async ({ page }) => {
+  await mockGithub(page)
+  await page.goto('/')
+  await connectPublic(page)
+  await page.click('[data-view=grid]')
+  await page.locator('.repo-card').first().click()
+  const over = page.getByRole('tab', { name: 'Visão geral' }), tech = page.getByRole('tab', { name: 'Raio-X' })
+  await expect(over).toHaveAttribute('aria-controls', 'dbody')
+  await expect(page.locator('#dbody')).toHaveAttribute('aria-labelledby', 'dtab-over')
+  await over.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(tech).toHaveAttribute('aria-selected', 'true')
+  await expect(tech).toBeFocused()
+  await expect(over).toHaveAttribute('tabindex', '-1')
+  await page.keyboard.press('ArrowLeft')
+  await expect(over).toBeFocused()
+  await page.keyboard.press('End')
+  await expect(page.getByRole('tab', { name: 'Ficha' })).toHaveAttribute('aria-selected', 'true')
+})
+
 test('raio-X: riscos por metadados, README seguro e análise a fundo', async ({ page }) => {
   await mockGithub(page)
   await page.goto('/')
