@@ -238,3 +238,16 @@ test('build sem nada hardcoded: CSP, sem usuário fixo e sem credencial', async 
     expect(text, f).not.toMatch(/gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}/)
   }
 })
+
+test('Atualizar informa sucesso e falha (o modal com o erro está fechado)', async ({ page }) => {
+  await mockGithub(page)
+  await page.goto('/')
+  await connectPublic(page)
+  await page.locator('.rail').getByRole('button', { name: 'Atualizar', exact: true }).click()
+  await expect(page.locator('.toast')).toContainText('Catálogo atualizado: 3 repositórios.')
+  await page.route('https://api.github.com/users/octo/repos**', route => route.fulfill({ status: 403, headers: { ...cors, 'content-type': 'application/json', 'x-ratelimit-remaining': '0', 'x-ratelimit-limit': '60', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 600) }, body: '{"message":"API rate limit exceeded"}' }))
+  await page.locator('.rail').getByRole('button', { name: 'Atualizar', exact: true }).click()
+  await expect(page.locator('.toast')).toContainText('Não foi possível atualizar. O limite de requisições do GitHub esgotou')
+  await expect(modal(page)).toBeHidden()
+  await expect(page.locator('#count')).toContainText('de 3 repositórios')
+})

@@ -138,7 +138,13 @@ export async function connect({ user = '', token, remember = false, force = fals
     return true
   } catch (e) { state.error = explain(e); return false } finally { state.loading = false }
 }
-export const refresh = (): Promise<boolean> => connect({ user: state.conn.user, token: credentials.token(), remember: credentials.remembered(), force: true })
+// The connect modal (where state.error is rendered) is closed during a refresh, so report the outcome in a toast.
+export async function refresh(): Promise<boolean> {
+  if (state.loading) return false
+  const ok = await connect({ user: state.conn.user, token: credentials.token(), remember: credentials.remembered(), force: true })
+  toast(ok ? `Catálogo atualizado: ${state.repos.length} repositórios.` : `Não foi possível atualizar. ${state.error}`)
+  return ok
+}
 export async function disconnect(): Promise<void> {
   credentials.clearAll(); forgetSecrets(); await db.clear()
   raw = []; stackIndex = { schema: SCHEMA, repos: [] }

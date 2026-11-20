@@ -65,7 +65,7 @@ watch(() => state.view, v => { document.querySelector('.stage')?.scrollTo(0, 0);
       <div class="sp"></div>
       <button v-if="state.installEvent" class="btn install" @click="install">Instalar app</button>
       <button class="vbtn" id="connBtn" @click="state.connectOpen = true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>{{ state.phase === 'ready' ? state.conn.user : 'Conectar' }}</button>
-      <button v-if="state.phase === 'ready'" class="vbtn" @click="refresh"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" /></svg>Atualizar</button>
+      <button v-if="state.phase === 'ready'" id="refreshBtn" class="vbtn" :disabled="state.loading" :aria-busy="state.loading" @click="refresh"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" /></svg>{{ state.loading ? 'Atualizando…' : 'Atualizar' }}</button>
       <button class="vbtn" @click="toggleTheme"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>Tema</button>
       <div class="net"><i :style="{ background: state.online ? '' : 'var(--st-experimento)' }"></i><span id="netTxt">{{ !state.online ? 'Você está offline' : state.phase === 'ready' ? `${state.conn.scope === 'private' ? 'Com privados' : 'Só públicos'} · ${rateTxt()}` : 'Não conectado' }}</span></div>
     </aside>
