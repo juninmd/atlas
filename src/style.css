@@ -53,6 +53,7 @@ a{color:var(--accent)}
 .vbtn{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;color:var(--mut);font-size:14.5px;font-weight:500;text-align:left;transition:.2s;position:relative}
 .vbtn svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .vbtn:hover{background:var(--surf2);color:var(--fg)}
+.vbtn:disabled{opacity:.6;cursor:progress}
 .vbtn[aria-pressed="true"]{background:var(--surf2);color:var(--fg)}
 .vbtn[aria-pressed="true"]::before{content:"";position:absolute;left:-12px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
 .rail .sp{flex:1}
