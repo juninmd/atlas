@@ -251,3 +251,14 @@ test('Atualizar informa sucesso e falha (o modal com o erro está fechado)', asy
   await expect(modal(page)).toBeHidden()
   await expect(page.locator('#count')).toContainText('de 3 repositórios')
 })
+
+test('tooltip fica dentro da tela depois de redimensionar a janela', async ({ page }) => {
+  await mockGithub(page)
+  await page.goto('/')
+  await connectPublic(page)
+  await page.click('[data-view=health]')
+  await page.setViewportSize({ width: 600, height: 800 })
+  await page.locator('#mosaic .cell').first().dispatchEvent('pointerenter', { clientX: 590, clientY: 100 })
+  const box = await page.locator('.tip').boundingBox()
+  expect(box!.x + box!.width).toBeLessThanOrEqual(600)
+})
