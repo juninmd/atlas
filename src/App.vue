@@ -38,7 +38,7 @@ const VIEWS: [View, string, string][] = [
 const search = ref<HTMLInputElement | null>(null)
 const statuses: Status[] = ['ativo', 'manutencao', 'experimento', 'abandonado']
 const counts = (): Partial<Record<Status, number>> => { const c: Partial<Record<Status, number>> = {}; state.repos.forEach(r => { c[r.scan.status] = (c[r.scan.status] ?? 0) + 1 }); return c }
-const width = innerWidth
+const tipLeft = (x: number): number => Math.min(innerWidth - 270, x + 14)
 const rateTxt = () => state.rate.limit ? `${state.rate.remaining}/${state.rate.limit} consultas` : ''
 
 function onKey(e: KeyboardEvent): void {
@@ -116,6 +116,6 @@ watch(() => state.view, v => { document.querySelector('.stage')?.scrollTo(0, 0);
   <Drawer />
   <Palette />
   <ConnectModal />
-  <div v-if="state.tip" class="tip show" :style="{ left: Math.min(width - 270, state.tip.x + 14) + 'px', top: state.tip.y + 16 + 'px' }" role="tooltip">{{ state.tip.text }}</div>
+  <div v-if="state.tip" class="tip show" :style="{ left: tipLeft(state.tip.x) + 'px', top: state.tip.y + 16 + 'px' }" role="tooltip">{{ state.tip.text }}</div>
   <div v-if="state.toast" class="toast" role="status"><span>{{ state.toast.msg }}</span><button v-if="state.toast.undo" @click="state.toast.undo(); state.toast = null">Desfazer</button></div>
 </template>
