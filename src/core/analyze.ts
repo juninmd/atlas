@@ -35,7 +35,7 @@ export function deepSignals(entry: StackEntry | null | undefined): DeepSignals |
 export function risksOf(repo: Meta, deep: DeepSignals | null, now = Date.now()): Risk[] {
   const out: Risk[] = [], age = ageDays(repo, now)
   const add = (id: string, sev: Severity, text: string, fix: string) => out.push({ id, sev, text, fix })
-  if (!repo.archived && age > 365) add('stale', 'media', `Sem push há ${Math.floor(age / 365)} ano(s).`, 'Arquive o repositório ou retome a manutenção.')
+  if (!repo.archived && age > 365) add('stale', 'media', Number.isFinite(age) ? `Sem push há ${Math.floor(age / 365)} ano(s).` : 'Nunca recebeu push.', 'Arquive o repositório ou retome a manutenção.')
   if (!repo.description) add('no-description', 'baixa', 'Sem descrição no GitHub.', 'Escreva uma frase curta sobre a finalidade do projeto.')
   if (!repo.topics?.length) add('no-topics', 'baixa', 'Sem topics.', 'Adicione topics para facilitar a busca.')
   if (!repo.license && !repo.fork) add('no-license', 'media', 'Sem licença declarada.', 'Inclua um arquivo LICENSE.')

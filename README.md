@@ -93,7 +93,7 @@ Cada risco traz uma sugestão de correção. Forks e repositórios arquivados n�
 
 | Risco | Gravidade | Regra | Origem |
 |---|---|---|---|
-| Parado | Média | Sem push há mais de um ano | Metadados |
+| Parado | Média | Sem push há mais de um ano (ou nunca recebeu push) | Metadados |
 | Sem licença | Média | Sem `LICENSE` (exceto forks) | Metadados |
 | Muitas issues | Média | 20 ou mais issues abertas | Metadados |
 | Sem descrição | Baixa | Descrição vazia | Metadados |

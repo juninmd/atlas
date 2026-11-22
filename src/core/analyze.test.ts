@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyze, statusOf } from './analyze.ts'
+import { analyze, risksOf, statusOf } from './analyze.ts'
 import type { Stack, StackEntry } from './types.ts'
 
 const NOW = Date.parse('2026-11-11T00:00:00Z')
@@ -31,6 +31,10 @@ test('forks e arquivados não recebem riscos de CI', () => {
   const bare = entry({ ci: { workflows: 0, reusable: [] }, lockfiles: [] })
   assert.ok(!analyze({ ...base, fork: true }, bare, NOW).risks.some(r => r.id === 'no-ci'))
   assert.ok(!analyze({ ...base, archived: true }, bare, NOW).risks.some(r => r.id === 'no-ci'))
+})
+test('repositório sem pushed_at diz que nunca recebeu push em vez de "Infinity ano(s)"', () => {
+  const stale = risksOf({ ...base, pushed_at: null }, null, NOW).find(r => r.id === 'stale')
+  assert.equal(stale?.text, 'Nunca recebeu push.')
 })
 test('saúde fica entre 4 e 99 e cai com riscos', () => {
   const ok = analyze(base, entry(), NOW), bad = analyze({ ...base, description: '', topics: [], license: null, open_issues: 50, pushed_at: days(500) }, null, NOW)
