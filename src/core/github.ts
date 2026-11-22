@@ -3,6 +3,7 @@ import { redact, registerSecret } from './redact.ts'
 import type { ReadmeDoc, RepoMeta } from './types.ts'
 
 export const API = 'https://api.github.com'
+const MAX_RETRY_WAIT = 30000
 export function fromBase64(b64: string): string {
   const bin = atob(String(b64).replace(/\s/g, ''))
   return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)))
@@ -46,12 +47,19 @@ export function createClient({ getToken = () => null, onRate, base = API }: Clie
       onRate?.({ ...rate })
     }
     if (!response.ok) {
-      if (attempt < 4 && (response.status >= 500 || response.status === 429 || (response.status === 403 && h.has('retry-after')))) {
-        const delay = Number(h.get('retry-after')) * 1000 || Math.min(30000, 2000 * 2 ** attempt)
+      const retryAfter = Number(h.get('retry-after')) * 1000
+      const retryable = response.status >= 500 || response.status === 429 || (response.status === 403 && h.has('retry-after'))
+      // Espera longa pedida pelo GitHub nao trava a tela: vira erro de cota com o horario de volta.
+      if (attempt < 4 && retryable && !(retryAfter > MAX_RETRY_WAIT)) {
+        const delay = retryAfter || Math.min(MAX_RETRY_WAIT, 2000 * 2 ** attempt)
         await new Promise(resolve => setTimeout(resolve, delay))
         return api(path, { token, method, body, attempt: attempt + 1 })
       }
       const error: ApiError = new Error(`GitHub retornou HTTP ${response.status}`); error.status = response.status
+      if (retryAfter > MAX_RETRY_WAIT) {
+        error.rateLimited = true
+        error.resetAt = new Date(Date.now() + retryAfter).toISOString()
+      }
       // Cota primaria esgotada: quem chama pode parar cedo e informar quando volta.
       if (response.status === 403 && h.get('x-ratelimit-remaining') === '0') {
         error.rateLimited = true
